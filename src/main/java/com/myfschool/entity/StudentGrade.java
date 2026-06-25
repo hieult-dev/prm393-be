@@ -29,15 +29,6 @@ public class StudentGrade implements Identifiable {
     @Column(name = "semester_id", nullable = false)
     private Long semesterId;
 
-    @Column(name = "process_score", precision = 4, scale = 2)
-    private BigDecimal processScore;
-
-    @Column(name = "midterm_score", precision = 4, scale = 2)
-    private BigDecimal midtermScore;
-
-    @Column(name = "final_score", precision = 4, scale = 2)
-    private BigDecimal finalScore;
-
     @Column(name = "total_score", precision = 4, scale = 2)
     private BigDecimal totalScore;
 
@@ -76,30 +67,6 @@ public class StudentGrade implements Identifiable {
 
     public void setSemesterId(Long semesterId) {
         this.semesterId = semesterId;
-    }
-
-    public BigDecimal getProcessScore() {
-        return processScore;
-    }
-
-    public void setProcessScore(BigDecimal processScore) {
-        this.processScore = processScore;
-    }
-
-    public BigDecimal getMidtermScore() {
-        return midtermScore;
-    }
-
-    public void setMidtermScore(BigDecimal midtermScore) {
-        this.midtermScore = midtermScore;
-    }
-
-    public BigDecimal getFinalScore() {
-        return finalScore;
-    }
-
-    public void setFinalScore(BigDecimal finalScore) {
-        this.finalScore = finalScore;
     }
 
     public BigDecimal getTotalScore() {

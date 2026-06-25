@@ -31,13 +31,13 @@ public class StudentApplication implements Identifiable {
     private String title;
 
     @NotBlank
-    @Column(nullable = false, columnDefinition = "varchar(max)")
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(nullable = false, length = 20)
     private String status = "PENDING";
 
-    @Column(name = "response_note", columnDefinition = "varchar(max)")
+    @Column(name = "response_note", columnDefinition = "text")
     private String responseNote;
 
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)

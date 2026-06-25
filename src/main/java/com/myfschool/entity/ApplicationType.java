@@ -20,7 +20,7 @@ public class ApplicationType implements Identifiable {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(columnDefinition = "varchar(max)")
+    @Column(columnDefinition = "text")
     private String description;
 
     @Override

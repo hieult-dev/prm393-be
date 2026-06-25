@@ -22,7 +22,7 @@ public class Event implements Identifiable {
     @Column(nullable = false, length = 150)
     private String title;
 
-    @Column(columnDefinition = "varchar(max)")
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(length = 150)
@@ -35,7 +35,7 @@ public class Event implements Identifiable {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(name = "image_url", columnDefinition = "varchar(max)")
+    @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
 
     @Column(nullable = false, length = 20)

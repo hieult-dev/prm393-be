@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-public abstract class AbstractCrudController<T> {
+public abstract class  AbstractCrudController<T> {
 
     private final CrudService<T> service;
 
@@ -33,12 +33,12 @@ public abstract class AbstractCrudController<T> {
 
     @PostMapping
     public ResponseEntity<ApiResponse<T>> create(@Valid @RequestBody T body) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created", service.create(body)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Tạo mới thành công", service.create(body)));
     }
 
     @PutMapping("/{id}")
     public ApiResponse<T> update(@PathVariable Long id, @Valid @RequestBody T body) {
-        return ApiResponse.success("Updated", service.update(id, body));
+        return ApiResponse.success("Cập nhật thành công", service.update(id, body));
     }
 
     @DeleteMapping("/{id}")

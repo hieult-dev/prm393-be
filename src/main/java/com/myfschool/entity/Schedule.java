@@ -48,7 +48,7 @@ public class Schedule implements Identifiable {
     @Column(name = "lecturer_name", length = 100)
     private String lecturerName;
 
-    @Column(columnDefinition = "varchar(max)")
+    @Column(columnDefinition = "text")
     private String note;
 
     @Override

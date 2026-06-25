@@ -10,7 +10,7 @@ public record ApiResponse<T>(
 ) {
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, "Success", data, LocalDateTime.now());
+        return new ApiResponse<>(true, "Thành công", data, LocalDateTime.now());
     }
 
     public static <T> ApiResponse<T> success(String message, T data) {

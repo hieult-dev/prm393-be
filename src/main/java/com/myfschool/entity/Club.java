@@ -22,7 +22,7 @@ public class Club implements Identifiable {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(columnDefinition = "varchar(max)")
+    @Column(columnDefinition = "text")
     private String description;
 
     @Column(name = "leader_name", length = 100)
@@ -32,7 +32,7 @@ public class Club implements Identifiable {
     @Column(name = "contact_email", length = 100)
     private String contactEmail;
 
-    @Column(name = "image_url", columnDefinition = "varchar(max)")
+    @Column(name = "image_url", columnDefinition = "text")
     private String imageUrl;
 
     @Column(nullable = false, length = 20)
