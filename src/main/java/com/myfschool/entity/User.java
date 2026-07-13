@@ -1,15 +1,21 @@
 package com.myfschool.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -19,23 +25,22 @@ public class User implements Identifiable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Column(name = "student_code", nullable = false, unique = true, length = 20)
-    private String studentCode;
-
-    @NotBlank
-    @Column(name = "full_name", nullable = false, length = 100)
-    private String fullName;
+    @Column(name = "user_name", unique = true, length = 250)
+    private String userName;
 
     @Email
-    @NotBlank
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(length = 50)
     private String email;
 
-    @NotBlank
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    @Column(name = "user_password", length = 250)
+    private String userPassword;
+
+    @Column(name = "first_name", length = 50)
+    private String firstName;
+
+    @Column(name = "last_name", length = 50)
+    private String lastName;
 
     @Column(length = 20)
     private String phone;
@@ -43,8 +48,17 @@ public class User implements Identifiable {
     @Column(name = "class_name", length = 50)
     private String className;
 
-    @Column(nullable = false, length = 20)
-    private String role = "STUDENT";
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new LinkedHashSet<>();
+
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String requestedRole;
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
@@ -62,20 +76,12 @@ public class User implements Identifiable {
         this.id = id;
     }
 
-    public String getStudentCode() {
-        return studentCode;
+    public String getUserName() {
+        return userName;
     }
 
-    public void setStudentCode(String studentCode) {
-        this.studentCode = studentCode;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getEmail() {
@@ -86,12 +92,28 @@ public class User implements Identifiable {
         this.email = email;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getUserPassword() {
+        return userPassword;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setUserPassword(String userPassword) {
+        this.userPassword = userPassword;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getPhone() {
@@ -110,12 +132,29 @@ public class User implements Identifiable {
         this.className = className;
     }
 
+    @Transient
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public String getRole() {
-        return role;
+        return roles.stream()
+                .findFirst()
+                .map(Role::getRoleName)
+                .orElse(requestedRole);
     }
 
     public void setRole(String role) {
-        this.role = role;
+        this.requestedRole = role;
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
+    public String getRequestedRole() {
+        return requestedRole;
     }
 
     public String getStatus() {

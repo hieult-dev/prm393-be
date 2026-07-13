@@ -3,37 +3,41 @@ package com.myfschool.exception;
 public class ResourceNotFoundException extends RuntimeException {
 
     public ResourceNotFoundException(String resourceName, Long id) {
-        super("Không tìm thấy " + translateResourceName(resourceName) + " với id " + id);
+        super("Not found " + translateResourceName(resourceName) + " with id " + id);
     }
 
     public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
-        super("Không tìm thấy " + translateResourceName(resourceName)
-                + " với " + translateFieldName(fieldName) + " " + fieldValue);
+        super("Not found " + translateResourceName(resourceName)
+                + " with " + translateFieldName(fieldName) + " " + fieldValue);
     }
 
     private static String translateResourceName(String resourceName) {
         return switch (resourceName) {
-            case "Application type" -> "loại đơn";
-            case "Club" -> "câu lạc bộ";
-            case "Club member" -> "thành viên câu lạc bộ";
-            case "Schedule" -> "lịch học";
-            case "Event" -> "sự kiện";
-            case "Student application" -> "đơn sinh viên";
-            case "Student grade" -> "điểm sinh viên";
-            case "Semester" -> "học kỳ";
-            case "Password reset token" -> "mã đặt lại mật khẩu";
-            case "Subject" -> "môn học";
-            case "User" -> "người dùng";
-            default -> "dữ liệu";
+            case "Application type" -> "application type";
+            case "Club" -> "club";
+            case "Club member" -> "club member";
+            case "Schedule" -> "schedule";
+            case "Event" -> "event";
+            case "Student application" -> "student application";
+            case "Student grade" -> "student grade";
+            case "Semester" -> "semester";
+            case "Password reset token" -> "password reset token";
+            case "Subject" -> "subject";
+            case "User" -> "user";
+            case "Role" -> "role";
+            case "Permission" -> "permission";
+            default -> "data";
         };
     }
 
     private static String translateFieldName(String fieldName) {
         return switch (fieldName) {
             case "id" -> "id";
-            case "phone" -> "số điện thoại";
-            case "studentCode" -> "mã sinh viên";
+            case "phone" -> "phone";
+            case "userName" -> "user_name";
             case "email" -> "email";
+            case "roleName" -> "role_name";
+            case "permissionName" -> "permission_name";
             default -> fieldName;
         };
     }

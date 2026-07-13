@@ -42,100 +42,103 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException exception) {
-        return ResponseEntity.badRequest().body(ApiResponse.error("Dữ liệu không hợp lệ"));
+        return ResponseEntity.badRequest().body(ApiResponse.error("Invalid data"));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
-        return ResponseEntity.badRequest().body(ApiResponse.error("Dữ liệu gửi lên không đúng định dạng"));
+        return ResponseEntity.badRequest().body(ApiResponse.error("Invalid request body"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameter(
             MissingServletRequestParameterException exception) {
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Thiếu tham số " + translateFieldName(exception.getParameterName())));
+                .body(ApiResponse.error("Missing parameter " + translateFieldName(exception.getParameterName())));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException exception) {
         return ResponseEntity.badRequest()
-                .body(ApiResponse.error("Tham số " + translateFieldName(exception.getName()) + " không đúng định dạng"));
+                .body(ApiResponse.error("Parameter " + translateFieldName(exception.getName()) + " has invalid format"));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpRequestMethodNotSupported(
             HttpRequestMethodNotSupportedException exception) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ApiResponse.error("Phương thức HTTP không được hỗ trợ"));
+                .body(ApiResponse.error("HTTP method is not supported"));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMediaTypeNotSupported(
             HttpMediaTypeNotSupportedException exception) {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                .body(ApiResponse.error("Định dạng nội dung không được hỗ trợ"));
+                .body(ApiResponse.error("Content type is not supported"));
     }
 
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
     public ResponseEntity<ApiResponse<Void>> handleNotFound(Exception exception) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Không tìm thấy đường dẫn"));
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error("Path not found"));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error("Dữ liệu vi phạm ràng buộc"));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error("Data violates constraints"));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("Lỗi hệ thống"));
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error("System error"));
     }
 
     private String translateFieldName(String fieldName) {
         return switch (fieldName) {
-            case "studentCode" -> "Mã sinh viên";
-            case "fullName" -> "Họ và tên";
-            case "email" -> "Email";
-            case "passwordHash", "password" -> "Mật khẩu";
-            case "phone" -> "Số điện thoại";
-            case "className" -> "Lớp";
-            case "role" -> "Vai trò";
-            case "status" -> "Trạng thái";
-            case "name" -> "Tên";
-            case "schoolYear" -> "Năm học";
-            case "subjectCode" -> "Mã môn học";
-            case "subjectName" -> "Tên môn học";
-            case "credits" -> "Số tín chỉ";
-            case "userId" -> "Người dùng";
-            case "subjectId" -> "Môn học";
-            case "semesterId" -> "Học kỳ";
-            case "totalScore" -> "Tổng điểm";
-            case "letterGrade" -> "Điểm chữ";
-            case "studyDate" -> "Ngày học";
-            case "startTime" -> "Thời gian bắt đầu";
-            case "endTime" -> "Thời gian kết thúc";
-            case "room" -> "Phòng";
-            case "lecturerName" -> "Giảng viên";
-            case "title" -> "Tiêu đề";
-            case "content" -> "Nội dung";
-            case "applicationTypeId" -> "Loại đơn";
-            case "responseNote" -> "Ghi chú phản hồi";
-            case "clubId" -> "Câu lạc bộ";
-            case "token" -> "Mã xác thực";
-            case "expiredAt" -> "Thời gian hết hạn";
+            case "userName" -> "user_name";
+            case "firstName" -> "first_name";
+            case "lastName" -> "last_name";
+            case "email" -> "email";
+            case "userPassword", "password" -> "user_password";
+            case "phone" -> "phone";
+            case "className" -> "class_name";
+            case "role" -> "role";
+            case "roleName" -> "role_name";
+            case "permissionName" -> "permission_name";
+            case "status" -> "status";
+            case "name" -> "name";
+            case "schoolYear" -> "school_year";
+            case "subjectCode" -> "subject_code";
+            case "subjectName" -> "subject_name";
+            case "credits" -> "credits";
+            case "userId" -> "user_id";
+            case "subjectId" -> "subject_id";
+            case "semesterId" -> "semester_id";
+            case "totalScore" -> "total_score";
+            case "letterGrade" -> "letter_grade";
+            case "studyDate" -> "study_date";
+            case "startTime" -> "start_time";
+            case "endTime" -> "end_time";
+            case "room" -> "room";
+            case "lecturerName" -> "lecturer_name";
+            case "title" -> "title";
+            case "content" -> "content";
+            case "applicationTypeId" -> "application_type_id";
+            case "responseNote" -> "response_note";
+            case "clubId" -> "club_id";
+            case "token" -> "token";
+            case "expiredAt" -> "expired_at";
             default -> fieldName;
         };
     }
 
     private String translateValidationMessage(String message) {
         if (message == null) {
-            return "không hợp lệ";
+            return "is invalid";
         }
         return switch (message) {
-            case "must not be blank" -> "không được để trống";
-            case "must not be null" -> "không được để trống";
-            case "must be a well-formed email address" -> "không đúng định dạng";
+            case "must not be blank" -> "must not be blank";
+            case "must not be null" -> "must not be null";
+            case "must be a well-formed email address" -> "must be a valid email";
             default -> message;
         };
     }
