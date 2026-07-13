@@ -10,4 +10,17 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     List<Schedule> findByUserId(Long userId);
 
     List<Schedule> findByUserIdAndStudyDate(Long userId, LocalDate studyDate);
+
+    List<Schedule> findByUserIdAndSemesterIdOrderByStudyDateAscStartTimeAsc(
+            Long userId,
+            Long semesterId
+    );
+
+    List<Schedule> findByUserIdAndSemesterIdAndStudyDateOrderByStartTimeAsc(
+            Long userId,
+            Long semesterId,
+            LocalDate studyDate
+    );
+
+    List<Schedule> findByUserIdAndStudyDateOrderByStartTimeAsc(Long userId, LocalDate studyDate);
 }

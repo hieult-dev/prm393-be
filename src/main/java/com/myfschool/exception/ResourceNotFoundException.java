@@ -20,6 +20,7 @@ public class ResourceNotFoundException extends RuntimeException {
             case "Event" -> "event";
             case "Student application" -> "student application";
             case "Student grade" -> "student grade";
+            case "Semester subject" -> "semester subject";
             case "Semester" -> "semester";
             case "Password reset token" -> "password reset token";
             case "Subject" -> "subject";

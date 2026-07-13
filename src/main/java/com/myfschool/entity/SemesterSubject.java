@@ -6,25 +6,24 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "semesters")
-public class Semester implements Identifiable {
+@Table(name = "semester_subjects")
+public class SemesterSubject implements Identifiable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Column(nullable = false, length = 50)
-    private String name;
+    @NotNull
+    @Column(name = "semester_id", nullable = false)
+    private Long semesterId;
 
-    @NotBlank
-    @Column(name = "school_year", nullable = false, length = 20)
-    private String schoolYear;
+    @NotNull
+    @Column(name = "subject_id", nullable = false)
+    private Long subjectId;
 
     @NotNull
     @Column(name = "start_date", nullable = false)
@@ -44,20 +43,20 @@ public class Semester implements Identifiable {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public Long getSemesterId() {
+        return semesterId;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setSemesterId(Long semesterId) {
+        this.semesterId = semesterId;
     }
 
-    public String getSchoolYear() {
-        return schoolYear;
+    public Long getSubjectId() {
+        return subjectId;
     }
 
-    public void setSchoolYear(String schoolYear) {
-        this.schoolYear = schoolYear;
+    public void setSubjectId(Long subjectId) {
+        this.subjectId = subjectId;
     }
 
     public LocalDate getStartDate() {

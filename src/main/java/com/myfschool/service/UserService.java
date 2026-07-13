@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -20,16 +21,25 @@ public class UserService extends AbstractCrudService<User> {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository repository, RoleRepository roleRepository) {
+    public UserService(
+            UserRepository repository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         super(repository, "User");
         this.userRepository = repository;
         this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     @Transactional
     public User create(User user) {
+        if (user.getUserPassword() != null && !user.getUserPassword().isBlank()) {
+            user.setUserPassword(passwordEncoder.encode(user.getUserPassword()));
+        }
         user.setRoles(resolveRoles(user));
         return super.create(user);
     }
@@ -37,23 +47,36 @@ public class UserService extends AbstractCrudService<User> {
     @Override
     @Transactional
     public User update(Long id, User user) {
+        User existing = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        if (user.getUserPassword() == null || user.getUserPassword().isBlank()) {
+            user.setUserPassword(existing.getUserPassword());
+        } else {
+            user.setUserPassword(passwordEncoder.encode(user.getUserPassword()));
+        }
         user.setRoles(resolveRoles(user));
         return super.update(id, user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
-        User user = userRepository.findByUserName(loginRequest.userName())
+        User user = userRepository.findByUserName(loginRequest.userName().trim())
                 .orElseThrow(InvalidCredentialsException::new);
 
-        if (!user.getUserPassword().equals(loginRequest.password())) {
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+                || !passwordEncoder.matches(loginRequest.password(), user.getUserPassword())) {
             throw new InvalidCredentialsException();
+        }
+
+        if (passwordEncoder.upgradeEncoding(user.getUserPassword())) {
+            user.setUserPassword(passwordEncoder.encode(loginRequest.password()));
+            userRepository.save(user);
         }
         
         return mapToLoginResponse(user);
     }
 
-    private LoginResponse mapToLoginResponse(User user) {
+    public LoginResponse mapToLoginResponse(User user) {
         List<String> roles = user.getRoles().stream()
                 .map(Role::getRoleName)
                 .sorted()

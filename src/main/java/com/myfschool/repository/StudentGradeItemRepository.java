@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StudentGradeItemRepository extends JpaRepository<StudentGradeItem, Long> {
 
     List<StudentGradeItem> findByStudentGradeIdOrderByDisplayOrderAscIdAsc(Long studentGradeId);
+
+    void deleteByStudentGradeId(Long studentGradeId);
 }

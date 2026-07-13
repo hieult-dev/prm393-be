@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,9 +92,12 @@ public class StudentGradeService extends AbstractCrudService<StudentGrade> {
     }
 
     @Transactional(readOnly = true)
-    public MarkDetailResponse getMarkDetail(Long studentGradeId) {
+    public MarkDetailResponse getMarkDetail(Long studentGradeId, Long currentUserId, boolean admin) {
         StudentGrade grade = repository.findById(studentGradeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student grade", studentGradeId));
+        if (!admin && !grade.getUserId().equals(currentUserId)) {
+            throw new AccessDeniedException("You cannot view another student's grade");
+        }
         User user = userRepository.findById(grade.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", grade.getUserId()));
         Subject subject = subjectRepository.findById(grade.getSubjectId())
