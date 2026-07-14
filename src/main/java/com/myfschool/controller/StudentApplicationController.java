@@ -1,5 +1,6 @@
 package com.myfschool.controller;
 
+import com.myfschool.dto.request.ReviewStudentApplicationRequest;
 import com.myfschool.dto.response.ApiResponse;
 import com.myfschool.entity.StudentApplication;
 import com.myfschool.service.StudentApplicationService;
@@ -12,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -79,6 +81,18 @@ public class StudentApplicationController extends AbstractCrudController<Student
             return ApiResponse.success(service.findByStatus(status));
         }
         return ApiResponse.success(service.findAll());
+    }
+
+    @PatchMapping("/{id}/review")
+    public ApiResponse<StudentApplication> review(
+            @PathVariable Long id,
+            @Valid @RequestBody ReviewStudentApplicationRequest request
+    ) {
+        Jwt jwt = currentJwt();
+        if (!hasRole(jwt, "ADMIN")) {
+            throw new AccessDeniedException("Only admin can review student applications");
+        }
+        return ApiResponse.success("Cập nhật trạng thái đơn thành công", service.review(id, request));
     }
 
     private List<StudentApplication> filterByStatus(List<StudentApplication> applications, String status) {

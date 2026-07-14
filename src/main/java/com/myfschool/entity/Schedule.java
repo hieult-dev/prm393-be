@@ -30,6 +30,9 @@ public class Schedule implements Identifiable {
     @Column(name = "semester_id", nullable = false)
     private Long semesterId;
 
+    @Column(name = "teacher_id")
+    private Long teacherId;
+
     @NotNull
     @Column(name = "study_date", nullable = false)
     private LocalDate studyDate;
@@ -83,6 +86,14 @@ public class Schedule implements Identifiable {
 
     public void setSemesterId(Long semesterId) {
         this.semesterId = semesterId;
+    }
+
+    public Long getTeacherId() {
+        return teacherId;
+    }
+
+    public void setTeacherId(Long teacherId) {
+        this.teacherId = teacherId;
     }
 
     public LocalDate getStudyDate() {

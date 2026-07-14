@@ -1,6 +1,7 @@
 package com.myfschool.service;
 
 import com.myfschool.dto.response.ScheduleItemResponse;
+import com.myfschool.dto.response.TeacherScheduleItemResponse;
 import com.myfschool.entity.Schedule;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.SemesterSubject;
@@ -13,9 +14,16 @@ import com.myfschool.repository.SemesterRepository;
 import com.myfschool.repository.SemesterSubjectRepository;
 import com.myfschool.repository.StudentSubjectEnrollmentRepository;
 import com.myfschool.repository.SubjectRepository;
+import com.myfschool.repository.TeacherSubjectRepository;
 import com.myfschool.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +36,7 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
     private final SubjectRepository subjectRepository;
     private final SemesterSubjectRepository semesterSubjectRepository;
     private final StudentSubjectEnrollmentRepository enrollmentRepository;
+    private final TeacherSubjectRepository teacherSubjectRepository;
 
     public ScheduleService(
             ScheduleRepository repository,
@@ -35,7 +44,8 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
             SemesterRepository semesterRepository,
             SubjectRepository subjectRepository,
             SemesterSubjectRepository semesterSubjectRepository,
-            StudentSubjectEnrollmentRepository enrollmentRepository
+            StudentSubjectEnrollmentRepository enrollmentRepository,
+            TeacherSubjectRepository teacherSubjectRepository
     ) {
         super(repository, "Schedule");
         this.repository = repository;
@@ -44,6 +54,7 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
         this.subjectRepository = subjectRepository;
         this.semesterSubjectRepository = semesterSubjectRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.teacherSubjectRepository = teacherSubjectRepository;
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +107,51 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<TeacherScheduleItemResponse> findTeacherDailySchedule(Long teacherId, LocalDate studyDate) {
+        requireTeacher(teacherId);
+        return toTeacherScheduleItems(repository.findByTeacherIdAndStudyDateOrderByStartTimeAsc(
+                teacherId,
+                studyDate
+        ));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeacherScheduleItemResponse> findTeacherWeeklySchedule(Long teacherId, LocalDate weekStart) {
+        requireTeacher(teacherId);
+        return toTeacherScheduleItems(repository.findByTeacherIdAndStudyDateBetweenOrderByStudyDateAscStartTimeAsc(
+                teacherId,
+                weekStart,
+                weekStart.plusDays(6)
+        ));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TeacherScheduleItemResponse> findTeacherSchedule(
+            Long teacherId,
+            Long semesterId,
+            LocalDate studyDate
+    ) {
+        requireTeacher(teacherId);
+        if (semesterId != null && studyDate != null) {
+            return toTeacherScheduleItems(repository.findByTeacherIdAndSemesterIdAndStudyDateOrderByStartTimeAsc(
+                    teacherId,
+                    semesterId,
+                    studyDate
+            ));
+        }
+        if (semesterId != null) {
+            return toTeacherScheduleItems(repository.findByTeacherIdAndSemesterIdOrderByStudyDateAscStartTimeAsc(
+                    teacherId,
+                    semesterId
+            ));
+        }
+        if (studyDate != null) {
+            return findTeacherDailySchedule(teacherId, studyDate);
+        }
+        return toTeacherScheduleItems(repository.findByTeacherIdOrderByStudyDateAscStartTimeAsc(teacherId));
+    }
+
     @Override
     @Transactional
     public Schedule create(Schedule schedule) {
@@ -118,9 +174,7 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
     private void validateSchedule(Schedule schedule, Long currentId) {
         User student = userRepository.findById(schedule.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", schedule.getUserId()));
-        boolean isStudent = student.getRoles().stream()
-                .anyMatch(role -> "STUDENT".equals(role.getRoleName()));
-        if (!isStudent) {
+        if (!hasRole(student, "STUDENT")) {
             throw new BadRequestException("Người dùng được chọn không phải sinh viên");
         }
 
@@ -128,6 +182,15 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
                 .orElseThrow(() -> new ResourceNotFoundException("Semester", schedule.getSemesterId()));
         subjectRepository.findById(schedule.getSubjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", schedule.getSubjectId()));
+        if (schedule.getTeacherId() != null) {
+            User teacher = requireTeacher(schedule.getTeacherId());
+            if (!teacherSubjectRepository.existsByTeacherIdAndSubjectId(teacher.getId(), schedule.getSubjectId())) {
+                throw new BadRequestException("Giáo viên chưa được gán môn học này");
+            }
+            if (schedule.getLecturerName() == null || schedule.getLecturerName().isBlank()) {
+                schedule.setLecturerName(fullName(teacher));
+            }
+        }
 
         SemesterSubject offering = semesterSubjectRepository
                 .findBySemesterIdAndSubjectIdOrderByStartDateAscIdAsc(
@@ -150,16 +213,20 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
             throw new BadRequestException("Giờ kết thúc phải sau giờ bắt đầu");
         }
 
-        boolean overlaps = repository
+        boolean studentOverlaps = repository
                 .findByUserIdAndStudyDateOrderByStartTimeAsc(schedule.getUserId(), schedule.getStudyDate())
                 .stream()
                 .filter(existing -> currentId == null || !existing.getId().equals(currentId))
                 .anyMatch(existing -> schedule.getStartTime().isBefore(existing.getEndTime())
                         && schedule.getEndTime().isAfter(existing.getStartTime()));
-        if (overlaps) {
+        if (studentOverlaps) {
             throw new BadRequestException("Sinh viên đã có lịch học trùng thời gian");
         }
+        if (schedule.getTeacherId() != null && hasTeacherOverlap(schedule, currentId)) {
+            throw new BadRequestException("Giáo viên đã có lịch dạy trùng thời gian");
+        }
     }
+
     private ScheduleItemResponse toScheduleItem(Schedule schedule) {
         Subject subject = subjectRepository.findById(schedule.getSubjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", schedule.getSubjectId()));
@@ -179,5 +246,113 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
                 schedule.getLecturerName(),
                 schedule.getNote()
         );
+    }
+
+    private List<TeacherScheduleItemResponse> toTeacherScheduleItems(List<Schedule> schedules) {
+        Map<TeacherScheduleKey, List<Schedule>> grouped = new LinkedHashMap<>();
+        schedules.forEach(schedule -> grouped
+                .computeIfAbsent(TeacherScheduleKey.from(schedule), ignored -> new java.util.ArrayList<>())
+                .add(schedule));
+        return grouped.values().stream()
+                .map(this::toTeacherScheduleItem)
+                .toList();
+    }
+
+    private TeacherScheduleItemResponse toTeacherScheduleItem(List<Schedule> schedules) {
+        Schedule first = schedules.get(0);
+        Subject subject = subjectRepository.findById(first.getSubjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subject", first.getSubjectId()));
+        Semester semester = semesterRepository.findById(first.getSemesterId())
+                .orElseThrow(() -> new ResourceNotFoundException("Semester", first.getSemesterId()));
+        Set<Long> studentIds = schedules.stream()
+                .map(Schedule::getUserId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        List<String> classNames = userRepository.findAllById(studentIds).stream()
+                .map(User::getClassName)
+                .filter(className -> className != null && !className.isBlank())
+                .distinct()
+                .sorted()
+                .toList();
+
+        return new TeacherScheduleItemResponse(
+                first.getId(),
+                semester.getId(),
+                semester.getName(),
+                subject.getId(),
+                subject.getSubjectCode(),
+                subject.getSubjectName(),
+                first.getStudyDate(),
+                first.getStartTime(),
+                first.getEndTime(),
+                first.getRoom(),
+                first.getLecturerName(),
+                first.getNote(),
+                studentIds.size(),
+                classNames
+        );
+    }
+
+    private boolean hasTeacherOverlap(Schedule schedule, Long currentId) {
+        return repository
+                .findByTeacherIdAndStudyDateOrderByStartTimeAsc(schedule.getTeacherId(), schedule.getStudyDate())
+                .stream()
+                .filter(existing -> currentId == null || !existing.getId().equals(currentId))
+                .filter(existing -> schedule.getStartTime().isBefore(existing.getEndTime())
+                        && schedule.getEndTime().isAfter(existing.getStartTime()))
+                .anyMatch(existing -> !isSameTeachingSlot(schedule, existing));
+    }
+
+    private boolean isSameTeachingSlot(Schedule schedule, Schedule existing) {
+        return Objects.equals(schedule.getSemesterId(), existing.getSemesterId())
+                && Objects.equals(schedule.getSubjectId(), existing.getSubjectId())
+                && Objects.equals(schedule.getStudyDate(), existing.getStudyDate())
+                && Objects.equals(schedule.getStartTime(), existing.getStartTime())
+                && Objects.equals(schedule.getEndTime(), existing.getEndTime())
+                && Objects.equals(schedule.getRoom(), existing.getRoom());
+    }
+
+    private User requireTeacher(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        if (!hasRole(user, "TEACHER")) {
+            throw new BadRequestException("Selected user is not a teacher");
+        }
+        return user;
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user.getRoles().stream()
+                .anyMatch(role -> roleName.equals(role.getRoleName()));
+    }
+
+    private String fullName(User user) {
+        return java.util.stream.Stream.of(user.getFirstName(), user.getLastName())
+                .filter(value -> value != null && !value.isBlank())
+                .collect(java.util.stream.Collectors.joining(" "));
+    }
+
+    private record TeacherScheduleKey(
+            Long semesterId,
+            Long subjectId,
+            LocalDate studyDate,
+            LocalTime startTime,
+            LocalTime endTime,
+            String room,
+            String lecturerName,
+            String note
+    ) {
+
+        private static TeacherScheduleKey from(Schedule schedule) {
+            return new TeacherScheduleKey(
+                    schedule.getSemesterId(),
+                    schedule.getSubjectId(),
+                    schedule.getStudyDate(),
+                    schedule.getStartTime(),
+                    schedule.getEndTime(),
+                    schedule.getRoom(),
+                    schedule.getLecturerName(),
+                    schedule.getNote()
+            );
+        }
     }
 }

@@ -103,6 +103,13 @@ public class UserService extends AbstractCrudService<User> {
         );
     }
 
+    @Transactional(readOnly = true)
+    public LoginResponse getCurrentProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        return mapToLoginResponse(user);
+    }
+
     private Set<Role> resolveRoles(User user) {
         Set<Role> roles = new LinkedHashSet<>();
 

@@ -29,4 +29,25 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
     );
 
     List<Schedule> findByUserIdAndStudyDateOrderByStartTimeAsc(Long userId, LocalDate studyDate);
+
+    List<Schedule> findByTeacherIdOrderByStudyDateAscStartTimeAsc(Long teacherId);
+
+    List<Schedule> findByTeacherIdAndStudyDateOrderByStartTimeAsc(Long teacherId, LocalDate studyDate);
+
+    List<Schedule> findByTeacherIdAndStudyDateBetweenOrderByStudyDateAscStartTimeAsc(
+            Long teacherId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
+    List<Schedule> findByTeacherIdAndSemesterIdOrderByStudyDateAscStartTimeAsc(
+            Long teacherId,
+            Long semesterId
+    );
+
+    List<Schedule> findByTeacherIdAndSemesterIdAndStudyDateOrderByStartTimeAsc(
+            Long teacherId,
+            Long semesterId,
+            LocalDate studyDate
+    );
 }

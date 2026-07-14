@@ -4,6 +4,7 @@ import com.myfschool.dto.response.MarkDetailItemResponse;
 import com.myfschool.dto.response.MarkDetailResponse;
 import com.myfschool.dto.response.MarkReportGradeResponse;
 import com.myfschool.dto.response.MarkReportSemesterResponse;
+import com.myfschool.dto.response.ProfileAcademicSummaryResponse;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.StudentGrade;
 import com.myfschool.entity.StudentGradeItem;
@@ -16,6 +17,7 @@ import com.myfschool.repository.StudentGradeRepository;
 import com.myfschool.repository.SubjectRepository;
 import com.myfschool.repository.UserRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -89,6 +91,54 @@ public class StudentGradeService extends AbstractCrudService<StudentGrade> {
                         gradesBySemester.getOrDefault(semester.getId(), List.of())
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileAcademicSummaryResponse getCurrentAcademicSummary(Long userId) {
+        LocalDate today = LocalDate.now();
+        Semester currentSemester = semesterRepository.findAll().stream()
+                .filter(semester -> semester.getStartDate() != null && semester.getEndDate() != null)
+                .filter(semester -> !today.isBefore(semester.getStartDate())
+                        && !today.isAfter(semester.getEndDate()))
+                .max(Comparator.comparing(Semester::getStartDate))
+                .orElse(null);
+
+        if (currentSemester == null) {
+            return new ProfileAcademicSummaryResponse(null, null, null, null, 0, 0);
+        }
+
+        Map<Long, Subject> subjectsById = subjectRepository.findAll().stream()
+                .collect(Collectors.toMap(Subject::getId, Function.identity()));
+        BigDecimal weightedScore = BigDecimal.ZERO;
+        int totalCredits = 0;
+        int gradedSubjects = 0;
+
+        for (StudentGrade grade : repository.findByUserIdAndSemesterId(userId, currentSemester.getId())) {
+            if (grade.getTotalScore() == null) {
+                continue;
+            }
+            Subject subject = subjectsById.get(grade.getSubjectId());
+            int credits = subject == null || subject.getCredits() == null
+                    ? 1
+                    : Math.max(subject.getCredits(), 1);
+            weightedScore = weightedScore.add(
+                    grade.getTotalScore().multiply(BigDecimal.valueOf(credits))
+            );
+            totalCredits += credits;
+            gradedSubjects++;
+        }
+
+        BigDecimal gpa = totalCredits == 0
+                ? null
+                : weightedScore.divide(BigDecimal.valueOf(totalCredits), 2, RoundingMode.HALF_UP);
+        return new ProfileAcademicSummaryResponse(
+                currentSemester.getId(),
+                currentSemester.getName(),
+                currentSemester.getSchoolYear(),
+                gpa,
+                gradedSubjects,
+                totalCredits
+        );
     }
 
     @Transactional(readOnly = true)

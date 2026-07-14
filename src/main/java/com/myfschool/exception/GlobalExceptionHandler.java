@@ -48,6 +48,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.error(exception.getMessage()));
     }
 
+    @ExceptionHandler(ResetTokenExpiredException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResetTokenExpired(ResetTokenExpiredException exception) {
+        return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.error(exception.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult()
@@ -129,8 +134,12 @@ public class GlobalExceptionHandler {
             case "subjectName" -> "subject_name";
             case "credits" -> "credits";
             case "userId" -> "user_id";
+            case "parentId" -> "parent_id";
+            case "studentId" -> "student_id";
+            case "studentIds" -> "student_ids";
             case "subjectId" -> "subject_id";
             case "semesterId" -> "semester_id";
+            case "teacherId" -> "teacher_id";
             case "totalScore" -> "total_score";
             case "letterGrade" -> "letter_grade";
             case "studyDate" -> "study_date";
@@ -146,6 +155,10 @@ public class GlobalExceptionHandler {
             case "responseNote" -> "response_note";
             case "clubId" -> "club_id";
             case "token" -> "token";
+            case "refreshToken" -> "refresh_token";
+            case "resetToken" -> "reset_token";
+            case "newPassword" -> "new_password";
+            case "confirmPassword" -> "confirm_password";
             case "expiredAt" -> "expired_at";
             default -> fieldName;
         };

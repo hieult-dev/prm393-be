@@ -96,8 +96,8 @@ public class SecurityConfig {
                 .filter(origin -> !origin.isEmpty())
                 .distinct()
                 .toList());
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Firebase-ID-Token"));
         configuration.setExposedHeaders(Arrays.asList("WWW-Authenticate"));
         configuration.setAllowCredentials(true);
 
@@ -124,9 +124,16 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/forgot-password/verify-phone",
+                                "/api/auth/forgot-password/reset"
+                        ).permitAll()
                         .requestMatchers("/api/auth/**", "/api/users/login").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/teacher/**").hasRole("TEACHER")
+                        .requestMatchers("/api/parent/**").hasRole("PARENT")
+                        .requestMatchers(HttpMethod.GET, "/api/profile", "/api/profile/**").authenticated()
                         .requestMatchers(
                                 "/api/users", "/api/users/**",
                                 "/api/roles", "/api/roles/**",

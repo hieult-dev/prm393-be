@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
@@ -18,7 +19,6 @@ public class StudentApplication implements Identifiable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -45,6 +45,18 @@ public class StudentApplication implements Identifiable {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Transient
+    private String studentCode;
+
+    @Transient
+    private String studentName;
+
+    @Transient
+    private String className;
+
+    @Transient
+    private String applicationTypeName;
 
     @Override
     public Long getId() {
@@ -118,5 +130,37 @@ public class StudentApplication implements Identifiable {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getStudentCode() {
+        return studentCode;
+    }
+
+    public void setStudentCode(String studentCode) {
+        this.studentCode = studentCode;
+    }
+
+    public String getStudentName() {
+        return studentName;
+    }
+
+    public void setStudentName(String studentName) {
+        this.studentName = studentName;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getApplicationTypeName() {
+        return applicationTypeName;
+    }
+
+    public void setApplicationTypeName(String applicationTypeName) {
+        this.applicationTypeName = applicationTypeName;
     }
 }

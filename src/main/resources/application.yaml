@@ -31,6 +31,7 @@ app:
     # Override JWT_SECRET in production with a random secret of at least 32 bytes.
     secret: ${JWT_SECRET:prm393-development-jwt-secret-change-me-2026}
     expiration: ${JWT_EXPIRATION:28800s}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:2592000s}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   admin:

@@ -4,11 +4,15 @@ import com.myfschool.dto.request.SaveGradeRequest;
 import com.myfschool.dto.response.AdminGradeResponse;
 import com.myfschool.dto.response.AdminStudentResponse;
 import com.myfschool.dto.response.ApiResponse;
+import com.myfschool.dto.response.TeacherScheduleItemResponse;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.Subject;
 import com.myfschool.service.AdminGradeService;
+import com.myfschool.service.ScheduleService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,9 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TeacherGradeController {
 
     private final AdminGradeService service;
+    private final ScheduleService scheduleService;
 
-    public TeacherGradeController(AdminGradeService service) {
+    public TeacherGradeController(AdminGradeService service, ScheduleService scheduleService) {
         this.service = service;
+        this.scheduleService = scheduleService;
     }
 
     @GetMapping("/subjects")
@@ -44,6 +50,35 @@ public class TeacherGradeController {
     @GetMapping("/semesters")
     public ApiResponse<List<Semester>> semesters() {
         return ApiResponse.success(service.getSemesters());
+    }
+
+    @GetMapping("/schedules")
+    public ApiResponse<List<TeacherScheduleItemResponse>> schedules(
+            @RequestParam(required = false) Long semesterId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate studyDate,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(scheduleService.findTeacherSchedule(
+                currentUserId(jwt),
+                semesterId,
+                studyDate
+        ));
+    }
+
+    @GetMapping("/schedules/day")
+    public ApiResponse<List<TeacherScheduleItemResponse>> daySchedule(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate studyDate,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(scheduleService.findTeacherDailySchedule(currentUserId(jwt), studyDate));
+    }
+
+    @GetMapping("/schedules/weekly")
+    public ApiResponse<List<TeacherScheduleItemResponse>> weeklySchedule(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(scheduleService.findTeacherWeeklySchedule(currentUserId(jwt), weekStart));
     }
 
     @GetMapping("/students")
