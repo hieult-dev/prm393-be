@@ -1,6 +1,7 @@
 package com.myfschool.controller;
 
 import com.myfschool.dto.response.ApiResponse;
+import com.myfschool.dto.response.ScheduleItemResponse;
 import com.myfschool.entity.Schedule;
 import com.myfschool.service.ScheduleService;
 import java.time.LocalDate;
@@ -48,6 +49,22 @@ public class ScheduleController extends AbstractCrudController<Schedule> {
             return ApiResponse.success(service.findByUserId(requestedUserId));
         }
         return ApiResponse.success(service.findByUserIdAndStudyDate(requestedUserId, studyDate));
+    }
+
+    @GetMapping("/weekly")
+    public ApiResponse<List<ScheduleItemResponse>> weekly(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(service.findWeeklySchedule(currentUserId(jwt), weekStart));
+    }
+
+    @GetMapping("/day")
+    public ApiResponse<List<ScheduleItemResponse>> day(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate studyDate,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(service.findDailySchedule(currentUserId(jwt), studyDate));
     }
 
     private Long currentUserId(Jwt jwt) {

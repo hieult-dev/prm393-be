@@ -5,11 +5,13 @@ import com.myfschool.dto.request.SaveGradeRequest;
 import com.myfschool.dto.response.AdminGradeItemResponse;
 import com.myfschool.dto.response.AdminGradeResponse;
 import com.myfschool.dto.response.AdminStudentResponse;
+import com.myfschool.dto.response.AdminTeacherResponse;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.StudentGrade;
 import com.myfschool.entity.StudentGradeItem;
 import com.myfschool.entity.StudentSubjectEnrollment;
 import com.myfschool.entity.Subject;
+import com.myfschool.entity.TeacherSubject;
 import com.myfschool.entity.User;
 import com.myfschool.exception.BadRequestException;
 import com.myfschool.exception.ResourceAlreadyExistsException;
@@ -20,14 +22,18 @@ import com.myfschool.repository.StudentGradeItemRepository;
 import com.myfschool.repository.StudentGradeRepository;
 import com.myfschool.repository.StudentSubjectEnrollmentRepository;
 import com.myfschool.repository.SubjectRepository;
+import com.myfschool.repository.TeacherSubjectRepository;
 import com.myfschool.repository.UserRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +49,7 @@ public class AdminGradeService {
     private final StudentGradeRepository gradeRepository;
     private final StudentGradeItemRepository itemRepository;
     private final StudentSubjectEnrollmentRepository enrollmentRepository;
+    private final TeacherSubjectRepository teacherSubjectRepository;
 
     public AdminGradeService(
             UserRepository userRepository,
@@ -51,7 +58,8 @@ public class AdminGradeService {
             SemesterSubjectRepository semesterSubjectRepository,
             StudentGradeRepository gradeRepository,
             StudentGradeItemRepository itemRepository,
-            StudentSubjectEnrollmentRepository enrollmentRepository
+            StudentSubjectEnrollmentRepository enrollmentRepository,
+            TeacherSubjectRepository teacherSubjectRepository
     ) {
         this.userRepository = userRepository;
         this.subjectRepository = subjectRepository;
@@ -60,12 +68,128 @@ public class AdminGradeService {
         this.gradeRepository = gradeRepository;
         this.itemRepository = itemRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.teacherSubjectRepository = teacherSubjectRepository;
     }
 
     @Transactional(readOnly = true)
     public List<AdminStudentResponse> getStudents(String search) {
         String keyword = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         return userRepository.findDistinctByRolesRoleNameOrderByUserNameAsc("STUDENT").stream()
+                .map(this::mapStudent)
+                .filter(student -> matchesStudent(student, keyword))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminTeacherResponse> getTeachers(String search) {
+        String keyword = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        return userRepository.findDistinctByRolesRoleNameOrderByUserNameAsc("TEACHER").stream()
+                .map(this::mapTeacher)
+                .filter(teacher -> matchesTeacher(teacher, keyword))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Subject> getTeacherSubjects(Long teacherId) {
+        requireTeacher(teacherId);
+        Set<Long> assignedSubjectIds = getTeacherSubjectIds(teacherId);
+        return subjectRepository.findAll().stream()
+                .filter(subject -> assignedSubjectIds.contains(subject.getId()))
+                .sorted(Comparator.comparing(Subject::getSubjectCode))
+                .toList();
+    }
+
+    @Transactional
+    public List<Subject> assignTeacherSubjects(Long teacherId, List<Long> subjectIds) {
+        requireTeacher(teacherId);
+
+        Set<Long> selectedSubjectIds = new HashSet<>(subjectIds);
+        Set<Long> existingSubjectIds = subjectRepository.findAllById(selectedSubjectIds)
+                .stream()
+                .map(Subject::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!existingSubjectIds.containsAll(selectedSubjectIds)) {
+            throw new BadRequestException("Subject not found in selected teacher subjects");
+        }
+
+        List<TeacherSubject> current = teacherSubjectRepository.findByTeacherIdOrderByIdAsc(teacherId);
+        teacherSubjectRepository.deleteAll(current.stream()
+                .filter(assignment -> !selectedSubjectIds.contains(assignment.getSubjectId()))
+                .toList());
+
+        Set<Long> currentSubjectIds = current.stream()
+                .map(TeacherSubject::getSubjectId)
+                .collect(java.util.stream.Collectors.toSet());
+        selectedSubjectIds.stream()
+                .filter(subjectId -> !currentSubjectIds.contains(subjectId))
+                .forEach(subjectId -> {
+                    TeacherSubject assignment = new TeacherSubject();
+                    assignment.setTeacherId(teacherId);
+                    assignment.setSubjectId(subjectId);
+                    teacherSubjectRepository.save(assignment);
+                });
+
+        return getTeacherSubjects(teacherId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Subject> getTeacherSubjects(Long teacherId, Long semesterId) {
+        requireTeacher(teacherId);
+        Set<Long> assignedSubjectIds = getTeacherSubjectIds(teacherId);
+        if (assignedSubjectIds.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> offeredSubjectIds = semesterId == null
+                ? null
+                : semesterSubjectRepository.findBySemesterIdOrderByStartDateAscIdAsc(semesterId)
+                        .stream()
+                        .map(com.myfschool.entity.SemesterSubject::getSubjectId)
+                        .collect(java.util.stream.Collectors.toSet());
+        return subjectRepository.findAll().stream()
+                .filter(subject -> assignedSubjectIds.contains(subject.getId()))
+                .filter(subject -> offeredSubjectIds == null || offeredSubjectIds.contains(subject.getId()))
+                .sorted(Comparator.comparing(Subject::getSubjectCode))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminStudentResponse> getTeacherStudents(
+            Long teacherId,
+            Long subjectId,
+            Long semesterId,
+            String search
+    ) {
+        requireTeacher(teacherId);
+        Set<Long> subjectIds = getTeacherSubjectIds(teacherId);
+        if (subjectId != null) {
+            requireTeacherCanTeach(teacherId, subjectId);
+            subjectIds = Set.of(subjectId);
+        }
+        if (subjectIds.isEmpty()) {
+            return List.of();
+        }
+        if (semesterId != null) {
+            requireSemester(semesterId);
+        }
+
+        List<StudentSubjectEnrollment> enrollments = semesterId == null
+                ? enrollmentRepository.findBySubjectIdInOrderByUserIdAscSemesterIdAscSubjectIdAsc(subjectIds)
+                : enrollmentRepository.findBySemesterIdAndSubjectIdInOrderByUserIdAscSemesterIdAscSubjectIdAsc(
+                        semesterId,
+                        subjectIds
+                );
+        Set<Long> studentIds = enrollments.stream()
+                .map(StudentSubjectEnrollment::getUserId)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        Map<Long, User> studentsById = userRepository.findAllById(studentIds)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, Function.identity()));
+
+        String keyword = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        return studentIds.stream()
+                .map(studentsById::get)
+                .filter(student -> student != null)
                 .map(this::mapStudent)
                 .filter(student -> matchesStudent(student, keyword))
                 .toList();
@@ -173,6 +297,35 @@ public class AdminGradeService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AdminGradeResponse> getTeacherGrades(
+            Long teacherId,
+            Long userId,
+            Long semesterId,
+            Long subjectId
+    ) {
+        requireTeacher(teacherId);
+        Set<Long> allowedSubjectIds = getTeacherSubjectIds(teacherId);
+        if (subjectId != null) {
+            requireTeacherCanTeach(teacherId, subjectId);
+            allowedSubjectIds = Set.of(subjectId);
+        }
+        if (allowedSubjectIds.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> subjectFilter = allowedSubjectIds;
+        return gradeRepository.findAll().stream()
+                .filter(grade -> subjectFilter.contains(grade.getSubjectId()))
+                .filter(grade -> userId == null || userId.equals(grade.getUserId()))
+                .filter(grade -> semesterId == null || semesterId.equals(grade.getSemesterId()))
+                .map(this::mapGrade)
+                .sorted(Comparator
+                        .comparing(AdminGradeResponse::subjectCode)
+                        .thenComparing(AdminGradeResponse::studentCode))
+                .toList();
+    }
+
     @Transactional
     public AdminGradeResponse createGrade(SaveGradeRequest request) {
         gradeRepository.findByUserIdAndSubjectIdAndSemesterId(
@@ -185,6 +338,12 @@ public class AdminGradeService {
 
         StudentGrade grade = new StudentGrade();
         return saveGrade(grade, request);
+    }
+
+    @Transactional
+    public AdminGradeResponse createGradeForTeacher(Long teacherId, SaveGradeRequest request) {
+        requireTeacherCanTeach(teacherId, request.subjectId());
+        return createGrade(request);
     }
 
     @Transactional
@@ -203,10 +362,36 @@ public class AdminGradeService {
     }
 
     @Transactional
+    public AdminGradeResponse updateGradeForTeacher(Long teacherId, Long id, SaveGradeRequest request) {
+        StudentGrade grade = gradeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student grade", id));
+        requireTeacherCanTeach(teacherId, grade.getSubjectId());
+        requireTeacherCanTeach(teacherId, request.subjectId());
+        gradeRepository.findByUserIdAndSubjectIdAndSemesterId(
+                        request.userId(), request.subjectId(), request.semesterId()
+                )
+                .filter(existing -> !existing.getId().equals(id))
+                .ifPresent(existing -> {
+                    throw new ResourceAlreadyExistsException(
+                            "Sinh viÃªn Ä‘Ã£ cÃ³ Ä‘iá»ƒm cho mÃ´n há»c trong há»c ká»³ nÃ y"
+                    );
+                });
+        return saveGrade(grade, request);
+    }
+
+    @Transactional
     public void deleteGrade(Long id) {
         if (!gradeRepository.existsById(id)) {
             throw new ResourceNotFoundException("Student grade", id);
         }
+        gradeRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteGradeForTeacher(Long teacherId, Long id) {
+        StudentGrade grade = gradeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student grade", id));
+        requireTeacherCanTeach(teacherId, grade.getSubjectId());
         gradeRepository.deleteById(id);
     }
 
@@ -278,12 +463,39 @@ public class AdminGradeService {
     private User requireStudent(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
-        boolean isStudent = user.getRoles().stream()
-                .anyMatch(role -> "STUDENT".equals(role.getRoleName()));
-        if (!isStudent) {
+        if (!hasRole(user, "STUDENT")) {
             throw new BadRequestException("Người dùng được chọn không phải sinh viên");
         }
         return user;
+    }
+
+    private User requireTeacher(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        if (!hasRole(user, "TEACHER")) {
+            throw new BadRequestException("Selected user is not a teacher");
+        }
+        return user;
+    }
+
+    private boolean hasRole(User user, String roleName) {
+        return user.getRoles().stream()
+                .anyMatch(role -> roleName.equals(role.getRoleName()));
+    }
+
+    private Set<Long> getTeacherSubjectIds(Long teacherId) {
+        return teacherSubjectRepository.findByTeacherIdOrderByIdAsc(teacherId)
+                .stream()
+                .map(TeacherSubject::getSubjectId)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private void requireTeacherCanTeach(Long teacherId, Long subjectId) {
+        requireTeacher(teacherId);
+        requireSubject(subjectId);
+        if (!teacherSubjectRepository.existsByTeacherIdAndSubjectId(teacherId, subjectId)) {
+            throw new BadRequestException("Teacher is not assigned to this subject");
+        }
     }
 
     private Subject requireSubject(Long id) {
@@ -296,16 +508,30 @@ public class AdminGradeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Semester", id));
     }
 
-    private AdminStudentResponse mapStudent(User user) {
-        String fullName = java.util.stream.Stream.of(user.getFirstName(), user.getLastName())
+    private String fullName(User user) {
+        return java.util.stream.Stream.of(user.getFirstName(), user.getLastName())
                 .filter(value -> value != null && !value.isBlank())
                 .collect(java.util.stream.Collectors.joining(" "));
+    }
+
+    private AdminStudentResponse mapStudent(User user) {
         return new AdminStudentResponse(
                 user.getId(),
                 user.getUserName(),
-                fullName,
+                fullName(user),
                 user.getEmail(),
                 user.getClassName(),
+                user.getStatus()
+        );
+    }
+
+    private AdminTeacherResponse mapTeacher(User user) {
+        return new AdminTeacherResponse(
+                user.getId(),
+                user.getUserName(),
+                fullName(user),
+                user.getEmail(),
+                user.getPhone(),
                 user.getStatus()
         );
     }
@@ -316,6 +542,14 @@ public class AdminGradeService {
                 || contains(student.fullName(), keyword)
                 || contains(student.email(), keyword)
                 || contains(student.className(), keyword);
+    }
+
+    private boolean matchesTeacher(AdminTeacherResponse teacher, String keyword) {
+        if (keyword.isEmpty()) return true;
+        return contains(teacher.userName(), keyword)
+                || contains(teacher.fullName(), keyword)
+                || contains(teacher.email(), keyword)
+                || contains(teacher.phone(), keyword);
     }
 
     private boolean contains(String value, String keyword) {

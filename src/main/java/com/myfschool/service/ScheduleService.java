@@ -1,7 +1,10 @@
 package com.myfschool.service;
 
+import com.myfschool.dto.response.ScheduleItemResponse;
 import com.myfschool.entity.Schedule;
+import com.myfschool.entity.Semester;
 import com.myfschool.entity.SemesterSubject;
+import com.myfschool.entity.Subject;
 import com.myfschool.entity.User;
 import com.myfschool.exception.BadRequestException;
 import com.myfschool.exception.ResourceNotFoundException;
@@ -51,6 +54,28 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
     @Transactional(readOnly = true)
     public List<Schedule> findByUserIdAndStudyDate(Long userId, LocalDate studyDate) {
         return repository.findByUserIdAndStudyDate(userId, studyDate);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScheduleItemResponse> findDailySchedule(Long userId, LocalDate studyDate) {
+        return repository.findByUserIdAndStudyDateOrderByStartTimeAsc(userId, studyDate)
+                .stream()
+                .map(this::toScheduleItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ScheduleItemResponse> findWeeklySchedule(Long userId, LocalDate weekStart) {
+        LocalDate weekEnd = weekStart.plusDays(6);
+        return repository
+                .findByUserIdAndStudyDateBetweenOrderByStudyDateAscStartTimeAsc(
+                        userId,
+                        weekStart,
+                        weekEnd
+                )
+                .stream()
+                .map(this::toScheduleItem)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -134,5 +159,25 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
         if (overlaps) {
             throw new BadRequestException("Sinh viên đã có lịch học trùng thời gian");
         }
+    }
+    private ScheduleItemResponse toScheduleItem(Schedule schedule) {
+        Subject subject = subjectRepository.findById(schedule.getSubjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Subject", schedule.getSubjectId()));
+        Semester semester = semesterRepository.findById(schedule.getSemesterId())
+                .orElseThrow(() -> new ResourceNotFoundException("Semester", schedule.getSemesterId()));
+        return new ScheduleItemResponse(
+                schedule.getId(),
+                semester.getId(),
+                semester.getName(),
+                subject.getId(),
+                subject.getSubjectCode(),
+                subject.getSubjectName(),
+                schedule.getStudyDate(),
+                schedule.getStartTime(),
+                schedule.getEndTime(),
+                schedule.getRoom(),
+                schedule.getLecturerName(),
+                schedule.getNote()
+        );
     }
 }

@@ -126,6 +126,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**", "/api/users/login").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/teacher/**").hasRole("TEACHER")
                         .requestMatchers(
                                 "/api/users", "/api/users/**",
                                 "/api/roles", "/api/roles/**",
@@ -137,8 +138,14 @@ public class SecurityConfig {
                                 "/api/student-grades/mark-report",
                                 "/api/student-grades/*/mark-detail"
                         ).authenticated()
-                        .requestMatchers("/api/student-grades", "/api/student-grades/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/schedules/search").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/student-grades/search").hasRole("ADMIN")
+                        .requestMatchers("/api/student-grades", "/api/student-grades/**").denyAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/schedules/search",
+                                "/api/schedules/day",
+                                "/api/schedules/weekly"
+                        ).authenticated()
                         .requestMatchers("/api/schedules", "/api/schedules/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/student-applications", "/api/student-applications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/student-applications").authenticated()

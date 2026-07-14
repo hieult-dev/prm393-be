@@ -1,21 +1,17 @@
 package com.myfschool.controller;
 
 import com.myfschool.dto.request.AssignSubjectsRequest;
-import com.myfschool.dto.request.SaveGradeRequest;
 import com.myfschool.dto.response.AdminGradeResponse;
 import com.myfschool.dto.response.AdminStudentResponse;
+import com.myfschool.dto.response.AdminTeacherResponse;
 import com.myfschool.dto.response.ApiResponse;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.Subject;
 import com.myfschool.service.AdminGradeService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +33,13 @@ public class AdminGradeController {
             @RequestParam(required = false) String search
     ) {
         return ApiResponse.success(service.getStudents(search));
+    }
+
+    @GetMapping("/teachers")
+    public ApiResponse<List<AdminTeacherResponse>> teachers(
+            @RequestParam(required = false) String search
+    ) {
+        return ApiResponse.success(service.getTeachers(search));
     }
 
     @GetMapping("/subjects")
@@ -66,8 +69,26 @@ public class AdminGradeController {
             @Valid @RequestBody AssignSubjectsRequest request
     ) {
         return ApiResponse.success(
-                "Gán môn học thành công",
+                "Gan mon hoc thanh cong",
                 service.assignSubjects(userId, semesterId, request.subjectIds())
+        );
+    }
+
+    @GetMapping("/teachers/{teacherId}/subjects")
+    public ApiResponse<List<Subject>> teacherSubjects(
+            @PathVariable Long teacherId
+    ) {
+        return ApiResponse.success(service.getTeacherSubjects(teacherId));
+    }
+
+    @PutMapping("/teachers/{teacherId}/subjects")
+    public ApiResponse<List<Subject>> assignTeacherSubjects(
+            @PathVariable Long teacherId,
+            @Valid @RequestBody AssignSubjectsRequest request
+    ) {
+        return ApiResponse.success(
+                "Gan mon cho teacher thanh cong",
+                service.assignTeacherSubjects(teacherId, request.subjectIds())
         );
     }
 
@@ -77,27 +98,5 @@ public class AdminGradeController {
             @RequestParam(required = false) Long semesterId
     ) {
         return ApiResponse.success(service.getGrades(userId, semesterId));
-    }
-
-    @PostMapping("/grades")
-    public ResponseEntity<ApiResponse<AdminGradeResponse>> create(
-            @Valid @RequestBody SaveGradeRequest request
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Nhập điểm thành công", service.createGrade(request)));
-    }
-
-    @PutMapping("/grades/{id}")
-    public ApiResponse<AdminGradeResponse> update(
-            @PathVariable Long id,
-            @Valid @RequestBody SaveGradeRequest request
-    ) {
-        return ApiResponse.success("Cập nhật điểm thành công", service.updateGrade(id, request));
-    }
-
-    @DeleteMapping("/grades/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.deleteGrade(id);
-        return ResponseEntity.noContent().build();
     }
 }
