@@ -83,7 +83,7 @@ public class AdminGradeService {
     @Transactional(readOnly = true)
     public List<AdminTeacherResponse> getTeachers(String search) {
         String keyword = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
-        return userRepository.findDistinctByRolesRoleNameOrderByUserNameAsc("TEACHER").stream()
+        return userRepository.findDistinctByRolesRoleNameOrderByUserNameAsc("SUBJECT_TEACHER").stream()
                 .map(this::mapTeacher)
                 .filter(teacher -> matchesTeacher(teacher, keyword))
                 .toList();
@@ -472,8 +472,8 @@ public class AdminGradeService {
     private User requireTeacher(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
-        if (!hasRole(user, "TEACHER")) {
-            throw new BadRequestException("Selected user is not a teacher");
+        if (!hasRole(user, "SUBJECT_TEACHER") && !hasRole(user, "TEACHER")) {
+            throw new BadRequestException("Selected user is not a subject teacher");
         }
         return user;
     }

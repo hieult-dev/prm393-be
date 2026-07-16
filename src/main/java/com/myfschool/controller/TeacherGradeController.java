@@ -1,14 +1,17 @@
 package com.myfschool.controller;
 
+import com.myfschool.dto.request.ReviewStudentApplicationRequest;
 import com.myfschool.dto.request.SaveGradeRequest;
 import com.myfschool.dto.response.AdminGradeResponse;
 import com.myfschool.dto.response.AdminStudentResponse;
 import com.myfschool.dto.response.ApiResponse;
 import com.myfschool.dto.response.TeacherScheduleItemResponse;
 import com.myfschool.entity.Semester;
+import com.myfschool.entity.StudentApplication;
 import com.myfschool.entity.Subject;
 import com.myfschool.service.AdminGradeService;
 import com.myfschool.service.ScheduleService;
+import com.myfschool.service.StudentApplicationService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -19,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,10 +37,16 @@ public class TeacherGradeController {
 
     private final AdminGradeService service;
     private final ScheduleService scheduleService;
+    private final StudentApplicationService studentApplicationService;
 
-    public TeacherGradeController(AdminGradeService service, ScheduleService scheduleService) {
+    public TeacherGradeController(
+            AdminGradeService service,
+            ScheduleService scheduleService,
+            StudentApplicationService studentApplicationService
+    ) {
         this.service = service;
         this.scheduleService = scheduleService;
+        this.studentApplicationService = studentApplicationService;
     }
 
     @GetMapping("/subjects")
@@ -81,6 +91,37 @@ public class TeacherGradeController {
         return ApiResponse.success(scheduleService.findTeacherWeeklySchedule(currentUserId(jwt), weekStart));
     }
 
+
+    @GetMapping("/applications")
+    public ApiResponse<List<StudentApplication>> applications(
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(studentApplicationService.findForHomeroomTeacher(
+                currentUserId(jwt),
+                status
+        ));
+    }
+
+    @GetMapping("/applications/search")
+    public ApiResponse<List<StudentApplication>> searchApplications(
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return applications(status, jwt);
+    }
+
+    @PatchMapping("/applications/{id}/review")
+    public ApiResponse<StudentApplication> reviewApplication(
+            @PathVariable Long id,
+            @Valid @RequestBody ReviewStudentApplicationRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(
+                "Cập nhật trạng thái đơn thành công",
+                studentApplicationService.reviewForHomeroomTeacher(id, request, currentUserId(jwt))
+        );
+    }
     @GetMapping("/students")
     public ApiResponse<List<AdminStudentResponse>> students(
             @RequestParam(required = false) Long subjectId,

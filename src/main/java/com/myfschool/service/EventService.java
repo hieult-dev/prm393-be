@@ -18,6 +18,6 @@ public class EventService extends AbstractCrudService<Event> {
 
     @Transactional(readOnly = true)
     public List<Event> findByStatus(String status) {
-        return repository.findByStatus(status);
+        return repository.findByStatusOrderByStartTimeDesc(status);
     }
 }

@@ -35,8 +35,11 @@ public class StudentApplicationController extends AbstractCrudController<Student
     @GetMapping
     public ApiResponse<List<StudentApplication>> findAll() {
         Jwt jwt = currentJwt();
-        if (hasRole(jwt, "ADMIN")) {
-            return ApiResponse.success(service.findAll());
+        if (hasRole(jwt, "HOMEROOM_TEACHER")) {
+            return ApiResponse.success(service.findForHomeroomTeacher(currentUserId(jwt), null));
+        }
+        if (hasRole(jwt, "PARENT")) {
+            return ApiResponse.success(service.findForParent(currentUserId(jwt), null, null));
         }
         return ApiResponse.success(service.findByUserId(currentUserId(jwt)));
     }
@@ -45,7 +48,11 @@ public class StudentApplicationController extends AbstractCrudController<Student
     @GetMapping("/{id}")
     public ApiResponse<StudentApplication> findById(@PathVariable Long id) {
         Jwt jwt = currentJwt();
-        return ApiResponse.success(service.findByIdForUser(id, currentUserId(jwt), hasRole(jwt, "ADMIN")));
+        return ApiResponse.success(service.findByIdForUser(
+                id,
+                currentUserId(jwt),
+                hasRole(jwt, "HOMEROOM_TEACHER")
+        ));
     }
 
     @Override
@@ -53,12 +60,7 @@ public class StudentApplicationController extends AbstractCrudController<Student
     public ResponseEntity<ApiResponse<StudentApplication>> create(
             @Valid @RequestBody StudentApplication body
     ) {
-        Jwt jwt = currentJwt();
-        StudentApplication application = hasRole(jwt, "ADMIN")
-                ? service.create(body)
-                : service.createForUser(body, currentUserId(jwt));
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Tạo mới thành công", application));
+        throw new AccessDeniedException("Students cannot submit applications directly");
     }
 
     @GetMapping("/search")
@@ -67,20 +69,17 @@ public class StudentApplicationController extends AbstractCrudController<Student
             @RequestParam(required = false) String status
     ) {
         Jwt jwt = currentJwt();
-        if (!hasRole(jwt, "ADMIN")) {
-            Long currentUserId = currentUserId(jwt);
-            if (userId != null && !userId.equals(currentUserId)) {
-                throw new AccessDeniedException("You cannot view another user's applications");
-            }
-            return ApiResponse.success(filterByStatus(service.findByUserId(currentUserId), status));
+        Long currentUserId = currentUserId(jwt);
+        if (hasRole(jwt, "HOMEROOM_TEACHER")) {
+            return ApiResponse.success(service.findForHomeroomTeacher(currentUserId, status));
         }
-        if (userId != null) {
-            return ApiResponse.success(service.findByUserId(userId));
+        if (hasRole(jwt, "PARENT")) {
+            return ApiResponse.success(service.findForParent(currentUserId, userId, status));
         }
-        if (status != null && !status.isBlank()) {
-            return ApiResponse.success(service.findByStatus(status));
+        if (userId != null && !userId.equals(currentUserId)) {
+            throw new AccessDeniedException("You cannot view another user's applications");
         }
-        return ApiResponse.success(service.findAll());
+        return ApiResponse.success(filterByStatus(service.findByUserId(currentUserId), status));
     }
 
     @PatchMapping("/{id}/review")
@@ -89,10 +88,13 @@ public class StudentApplicationController extends AbstractCrudController<Student
             @Valid @RequestBody ReviewStudentApplicationRequest request
     ) {
         Jwt jwt = currentJwt();
-        if (!hasRole(jwt, "ADMIN")) {
-            throw new AccessDeniedException("Only admin can review student applications");
+        if (!hasRole(jwt, "HOMEROOM_TEACHER")) {
+            throw new AccessDeniedException("Only homeroom teachers can review student applications");
         }
-        return ApiResponse.success("Cập nhật trạng thái đơn thành công", service.review(id, request));
+        return ApiResponse.success(
+                "Cập nhật trạng thái đơn thành công",
+                service.reviewForHomeroomTeacher(id, request, currentUserId(jwt))
+        );
     }
 
     private List<StudentApplication> filterByStatus(List<StudentApplication> applications, String status) {

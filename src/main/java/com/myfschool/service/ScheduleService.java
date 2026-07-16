@@ -314,8 +314,8 @@ public class ScheduleService extends AbstractCrudService<Schedule> {
     private User requireTeacher(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
-        if (!hasRole(user, "TEACHER")) {
-            throw new BadRequestException("Selected user is not a teacher");
+        if (!hasRole(user, "SUBJECT_TEACHER") && !hasRole(user, "TEACHER")) {
+            throw new BadRequestException("Selected user is not a subject teacher");
         }
         return user;
     }

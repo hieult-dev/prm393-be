@@ -5,14 +5,21 @@ import com.myfschool.dto.response.ApiResponse;
 import com.myfschool.dto.response.MarkDetailResponse;
 import com.myfschool.dto.response.MarkReportSemesterResponse;
 import com.myfschool.dto.response.ScheduleItemResponse;
+import com.myfschool.entity.StudentApplication;
 import com.myfschool.service.ParentStudentService;
+import com.myfschool.service.StudentApplicationService;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,9 +29,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ParentController {
 
     private final ParentStudentService service;
+    private final StudentApplicationService studentApplicationService;
 
-    public ParentController(ParentStudentService service) {
+    public ParentController(
+            ParentStudentService service,
+            StudentApplicationService studentApplicationService
+    ) {
         this.service = service;
+        this.studentApplicationService = studentApplicationService;
     }
 
     @GetMapping("/students")
@@ -32,6 +44,46 @@ public class ParentController {
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ApiResponse.success(service.getLinkedStudents(currentUserId(jwt)));
+    }
+
+    @GetMapping("/applications")
+    public ApiResponse<List<StudentApplication>> applications(
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(studentApplicationService.findForParent(
+                currentUserId(jwt),
+                null,
+                status
+        ));
+    }
+
+    @GetMapping("/students/{studentId}/applications")
+    public ApiResponse<List<StudentApplication>> studentApplications(
+            @PathVariable Long studentId,
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(studentApplicationService.findForParent(
+                currentUserId(jwt),
+                studentId,
+                status
+        ));
+    }
+
+    @PostMapping("/students/{studentId}/applications")
+    public ResponseEntity<ApiResponse<StudentApplication>> createStudentApplication(
+            @PathVariable Long studentId,
+            @Valid @RequestBody StudentApplication body,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        StudentApplication application = studentApplicationService.createForParent(
+                body,
+                currentUserId(jwt),
+                studentId
+        );
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Gửi đơn thành công", application));
     }
 
     @GetMapping("/students/{studentId}/mark-report")

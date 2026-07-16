@@ -22,6 +22,9 @@ public class StudentApplication implements Identifiable {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "parent_id")
+    private Long parentId;
+
     @NotNull
     @Column(name = "application_type_id", nullable = false)
     private Long applicationTypeId;
@@ -53,6 +56,12 @@ public class StudentApplication implements Identifiable {
     private String studentName;
 
     @Transient
+    private String parentUserName;
+
+    @Transient
+    private String parentName;
+
+    @Transient
     private String className;
 
     @Transient
@@ -74,6 +83,14 @@ public class StudentApplication implements Identifiable {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 
     public Long getApplicationTypeId() {
@@ -146,6 +163,22 @@ public class StudentApplication implements Identifiable {
 
     public void setStudentName(String studentName) {
         this.studentName = studentName;
+    }
+
+    public String getParentUserName() {
+        return parentUserName;
+    }
+
+    public void setParentUserName(String parentUserName) {
+        this.parentUserName = parentUserName;
+    }
+
+    public String getParentName() {
+        return parentName;
+    }
+
+    public void setParentName(String parentName) {
+        this.parentName = parentName;
     }
 
     public String getClassName() {

@@ -131,7 +131,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/auth/**", "/api/users/login").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/teacher/**").hasRole("TEACHER")
+                        .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "SUBJECT_TEACHER", "HOMEROOM_TEACHER")
                         .requestMatchers("/api/parent/**").hasRole("PARENT")
                         .requestMatchers(HttpMethod.GET, "/api/profile", "/api/profile/**").authenticated()
                         .requestMatchers(
@@ -155,8 +155,9 @@ public class SecurityConfig {
                         ).authenticated()
                         .requestMatchers("/api/schedules", "/api/schedules/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/student-applications", "/api/student-applications/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/student-applications").authenticated()
-                        .requestMatchers("/api/student-applications", "/api/student-applications/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/student-applications").denyAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/student-applications/*/review").hasRole("HOMEROOM_TEACHER")
+                        .requestMatchers("/api/student-applications", "/api/student-applications/**").denyAll()
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/application-types", "/api/application-types/**",

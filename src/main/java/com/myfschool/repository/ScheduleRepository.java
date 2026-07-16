@@ -4,6 +4,8 @@ import com.myfschool.entity.Schedule;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
@@ -49,5 +51,17 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             Long teacherId,
             Long semesterId,
             LocalDate studyDate
+    );
+
+    @Query("""
+            SELECT COUNT(schedule)
+            FROM Schedule schedule
+            JOIN User student ON student.id = schedule.userId
+            WHERE schedule.teacherId = :teacherId
+              AND LOWER(student.className) = LOWER(:className)
+            """)
+    long countTeachingAssignmentsForClass(
+            @Param("teacherId") Long teacherId,
+            @Param("className") String className
     );
 }
