@@ -10,6 +10,7 @@ public record LoginResponse(
         String email,
         String phone,
         String className,
+        String teacherTitle,
         String role,
         List<String> roles,
         List<String> permissions,

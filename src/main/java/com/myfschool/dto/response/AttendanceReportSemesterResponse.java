@@ -1,0 +1,14 @@
+package com.myfschool.dto.response;
+
+import java.time.LocalDate;
+import java.util.List;
+
+public record AttendanceReportSemesterResponse(
+        Long id,
+        String name,
+        String schoolYear,
+        LocalDate startDate,
+        LocalDate endDate,
+        List<AttendanceReportItemResponse> reports
+) {
+}

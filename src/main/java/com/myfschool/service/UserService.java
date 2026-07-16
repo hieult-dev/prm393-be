@@ -7,6 +7,7 @@ import com.myfschool.entity.Role;
 import com.myfschool.entity.User;
 import com.myfschool.exception.InvalidCredentialsException;
 import com.myfschool.exception.ResourceNotFoundException;
+import com.myfschool.repository.HomeroomTeacherClassRepository;
 import com.myfschool.repository.RoleRepository;
 import com.myfschool.repository.UserRepository;
 import java.util.LinkedHashSet;
@@ -22,16 +23,19 @@ public class UserService extends AbstractCrudService<User> {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final HomeroomTeacherClassRepository homeroomTeacherClassRepository;
 
     public UserService(
             UserRepository repository,
             RoleRepository roleRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            HomeroomTeacherClassRepository homeroomTeacherClassRepository
     ) {
         super(repository, "User");
         this.userRepository = repository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.homeroomTeacherClassRepository = homeroomTeacherClassRepository;
     }
 
     @Override
@@ -96,11 +100,24 @@ public class UserService extends AbstractCrudService<User> {
                 user.getEmail(),
                 user.getPhone(),
                 user.getClassName(),
+                teacherTitle(user, roles),
                 roles.stream().findFirst().orElse(null),
                 roles,
                 permissions,
                 user.getStatus()
         );
+    }
+
+    private String teacherTitle(User user, List<String> roles) {
+        if (roles.contains("HOMEROOM_TEACHER")) {
+            return homeroomTeacherClassRepository.findByTeacherId(user.getId())
+                    .map(homeroom -> "Giáo viên chủ nhiệm · " + homeroom.getClassName())
+                    .orElse("Giáo viên chủ nhiệm");
+        }
+        if (roles.contains("SUBJECT_TEACHER") || roles.contains("TEACHER")) {
+            return "Giáo viên bộ môn";
+        }
+        return null;
     }
 
     @Transactional(readOnly = true)

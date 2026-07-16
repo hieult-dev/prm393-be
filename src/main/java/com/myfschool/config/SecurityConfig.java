@@ -154,6 +154,18 @@ public class SecurityConfig {
                                 "/api/schedules/weekly"
                         ).authenticated()
                         .requestMatchers("/api/schedules", "/api/schedules/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/attendance-reports/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/attendance-reports/search").hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/exam-schedules/me",
+                                "/api/exam-schedules/search"
+                        ).authenticated()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/exam-schedules",
+                                "/api/exam-schedules/**"
+                        ).hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/student-applications", "/api/student-applications/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/student-applications").denyAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/student-applications/*/review").hasRole("HOMEROOM_TEACHER")
@@ -163,6 +175,7 @@ public class SecurityConfig {
                                 "/api/application-types", "/api/application-types/**",
                                 "/api/clubs", "/api/clubs/**",
                                 "/api/club-members", "/api/club-members/**",
+                                "/api/exam-schedules", "/api/exam-schedules/**",
                                 "/api/events", "/api/events/**",
                                 "/api/semesters", "/api/semesters/**",
                                 "/api/semester-subjects", "/api/semester-subjects/**",
@@ -173,6 +186,7 @@ public class SecurityConfig {
                                 "/api/application-types", "/api/application-types/**",
                                 "/api/clubs", "/api/clubs/**",
                                 "/api/club-members", "/api/club-members/**",
+                                "/api/exam-schedules", "/api/exam-schedules/**",
                                 "/api/events", "/api/events/**",
                                 "/api/semesters", "/api/semesters/**",
                                 "/api/semester-subjects", "/api/semester-subjects/**",
@@ -183,6 +197,7 @@ public class SecurityConfig {
                                 "/api/application-types", "/api/application-types/**",
                                 "/api/clubs", "/api/clubs/**",
                                 "/api/club-members", "/api/club-members/**",
+                                "/api/exam-schedules", "/api/exam-schedules/**",
                                 "/api/events", "/api/events/**",
                                 "/api/semesters", "/api/semesters/**",
                                 "/api/semester-subjects", "/api/semester-subjects/**",

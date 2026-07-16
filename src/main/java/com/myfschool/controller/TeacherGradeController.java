@@ -5,6 +5,7 @@ import com.myfschool.dto.request.SaveGradeRequest;
 import com.myfschool.dto.response.AdminGradeResponse;
 import com.myfschool.dto.response.AdminStudentResponse;
 import com.myfschool.dto.response.ApiResponse;
+import com.myfschool.dto.response.GradeImportResultResponse;
 import com.myfschool.dto.response.TeacherScheduleItemResponse;
 import com.myfschool.entity.Semester;
 import com.myfschool.entity.StudentApplication;
@@ -16,7 +17,9 @@ import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/teacher")
@@ -150,6 +154,50 @@ public class TeacherGradeController {
                 semesterId,
                 subjectId
         ));
+    }
+
+    @GetMapping("/grades/template")
+    public ResponseEntity<byte[]> gradeTemplate(
+            @RequestParam Long semesterId,
+            @RequestParam Long subjectId,
+            @RequestParam(required = false) String className,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        byte[] file = service.buildTeacherGradeTemplate(
+                currentUserId(jwt),
+                semesterId,
+                subjectId,
+                className
+        );
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"grade-template.xlsx\""
+                )
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ))
+                .body(file);
+    }
+
+    @PostMapping(value = "/grades/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<GradeImportResultResponse> importGrades(
+            @RequestParam Long semesterId,
+            @RequestParam Long subjectId,
+            @RequestParam(required = false) String className,
+            @RequestParam MultipartFile file,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ApiResponse.success(
+                "Import điểm thành công",
+                service.importTeacherGrades(
+                        currentUserId(jwt),
+                        semesterId,
+                        subjectId,
+                        className,
+                        file
+                )
+        );
     }
 
     @PostMapping("/grades")
