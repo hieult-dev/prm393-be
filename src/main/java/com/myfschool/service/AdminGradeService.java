@@ -60,8 +60,8 @@ public class AdminGradeService {
     private static final BigDecimal TOTAL_WEIGHT = new BigDecimal("100.00");
     private static final int GRADE_START_COLUMN = 4;
     private static final List<GradeComponent> DEFAULT_GRADE_COMPONENTS = List.of(
-            new GradeComponent("PT1", new BigDecimal("50.00")),
-            new GradeComponent("PT2", new BigDecimal("50.00"))
+            new GradeComponent("Học kỳ 1", new BigDecimal("50.00")),
+            new GradeComponent("Học kỳ 2", new BigDecimal("50.00"))
     );
 
     private final UserRepository userRepository;
